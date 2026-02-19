@@ -1,4 +1,4 @@
-name: Build VPN APK
+name: All Builds (Linux, macOS, Windows, Android, IPA, APK, AAB)
 
 on:
   push:
@@ -6,36 +6,51 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  BUILD_NUMBER: 1
+  BUILD_VERSION: 1.0.0
+  PYTHON_VERSION: 3.12.2
+  FLUTTER_VERSION: 3.22.2
+
 jobs:
-  build:
+
+  build-apk:
     runs-on: ubuntu-latest
 
     steps:
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Install tools
-        run: |
-          sudo apt update
-          sudo apt install -y wget unzip zip
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Download Xray ARM64
-        run: |
-          wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip
-          unzip Xray-linux-arm64-v8a.zip
-          chmod +x xray
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flet
+        pip install -r requirements.txt || true
 
-      - name: Create APK
-        run: |
-          mkdir app
-          cp xray app/
-          cp config.json app/
-          cd app
-          zip VPN-VIP.apk xray config.json
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: ${{ env.FLUTTER_VERSION }}
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: VPN-VIP-APK
-          path: app/VPN-VIP.apk
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 21
+
+    - name: Build APK
+      run: |
+        flutter config --no-analytics
+        flet build apk --verbose --build-number=$BUILD_NUMBER --build-version=$BUILD_VERSION
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: VPN-VIP-APK
+        path: build/apk
