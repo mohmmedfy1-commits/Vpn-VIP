@@ -1,22 +1,37 @@
 import flet as ft
 import subprocess
 import os
-import signal
-import json
 import threading
 import time
+import shutil
 
-XRAY_EXECUTABLE = "./xray"
-XRAY_CONFIG = "config.json"
+# مسار Android الصحيح
+APP_DIR = os.getcwd()
+XRAY_EXECUTABLE = os.path.join(APP_DIR, "xray")
+XRAY_CONFIG = os.path.join(APP_DIR, "config.json")
 
 xray_process = None
 status_text = None
 log_text = None
+page = None
+
+
+def prepare_xray():
+    try:
+        # إعطاء صلاحية التنفيذ
+        if os.path.exists(XRAY_EXECUTABLE):
+            os.chmod(XRAY_EXECUTABLE, 0o755)
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(e)
+        return False
 
 
 def check_files():
     if not os.path.exists(XRAY_EXECUTABLE):
-        return False, "xray core not found"
+        return False, "xray not found"
 
     if not os.path.exists(XRAY_CONFIG):
         return False, "config.json not found"
@@ -36,20 +51,22 @@ def start_vpn(e):
         return
 
     if xray_process is not None:
-        status_text.value = "VPN already running"
+        status_text.value = "Already running"
         page.update()
         return
 
     try:
 
+        prepare_xray()
+
         xray_process = subprocess.Popen(
             [XRAY_EXECUTABLE, "-config", XRAY_CONFIG],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True
         )
 
-        status_text.value = "VPN Connecting..."
+        status_text.value = "Connecting..."
 
         threading.Thread(target=read_logs, daemon=True).start()
 
@@ -65,20 +82,18 @@ def stop_vpn(e):
     global xray_process
 
     if xray_process is None:
-        status_text.value = "VPN not running"
+        status_text.value = "Not running"
         page.update()
         return
 
     try:
 
-        xray_process.terminate()
-
+        xray_process.kill()
         xray_process = None
-
-        status_text.value = "VPN Stopped"
+        status_text.value = "Stopped"
 
     except:
-        status_text.value = "Error stopping VPN"
+        status_text.value = "Stop error"
 
     page.update()
 
@@ -87,19 +102,16 @@ def read_logs():
 
     global xray_process
 
-    while True:
+    while xray_process:
 
-        if xray_process is None:
-            break
+        line = xray_process.stdout.readline()
 
-        output = xray_process.stdout.readline()
+        if line:
 
-        if output:
+            log_text.value = line.strip()
 
-            log_text.value = output.strip()
-
-            if "started" in output.lower():
-                status_text.value = "VPN Connected"
+            if "started" in line.lower():
+                status_text.value = "Connected"
 
             page.update()
 
@@ -112,13 +124,10 @@ def check_connection():
 
     while True:
 
-        if xray_process is None:
-            status_text.value = "Disconnected"
+        if xray_process and xray_process.poll() is None:
+            status_text.value = "Connected"
         else:
-            if xray_process.poll() is None:
-                status_text.value = "Connected"
-            else:
-                status_text.value = "Disconnected"
+            status_text.value = "Disconnected"
 
         page.update()
 
@@ -133,8 +142,6 @@ def main(p: ft.Page):
 
     page.title = "XRAY VPN"
     page.theme_mode = ft.ThemeMode.DARK
-    page.window_width = 400
-    page.window_height = 600
 
     status_text = ft.Text(
         "Disconnected",
@@ -142,47 +149,31 @@ def main(p: ft.Page):
         color="red"
     )
 
-    log_text = ft.Text(
-        "",
-        size=12
-    )
+    log_text = ft.Text("", size=12)
 
     start_button = ft.ElevatedButton(
         "Start VPN",
-        icon=ft.Icons.PLAY_ARROW,
         on_click=start_vpn
     )
 
     stop_button = ft.ElevatedButton(
         "Stop VPN",
-        icon=ft.Icons.STOP,
         on_click=stop_vpn
     )
 
     page.add(
 
         ft.Column(
-
             [
-                ft.Text("XRAY VMESS VPN", size=30, weight="bold"),
-
+                ft.Text("XRAY VPN", size=30),
                 status_text,
-
                 start_button,
-
                 stop_button,
-
-                ft.Divider(),
-
                 ft.Text("Logs:"),
-
                 log_text
-
             ],
-
             alignment=ft.MainAxisAlignment.CENTER,
             horizontal_alignment=ft.CrossAxisAlignment.CENTER
-
         )
 
     )
