@@ -12,59 +12,31 @@ jobs:
 
     steps:
 
-      # 1. تحميل ملفات المشروع
       - name: Checkout repository
         uses: actions/checkout@v4
 
-
-      # 2. تثبيت الأدوات
       - name: Install tools
         run: |
           sudo apt update
           sudo apt install -y wget unzip zip
 
-
-      # 3. تحميل Xray
       - name: Download Xray
         run: |
           wget -O xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip
-          
-          # حذف الملفات القديمة إذا وجدت
-          rm -f xray geosite.dat geoip.dat LICENSE README.md
-          
-          # فك الضغط بدون سؤال
           unzip -o xray.zip
-          
-          # إعطاء صلاحية التنفيذ
           chmod +x xray
-          
-          # عرض الملفات للتأكد
-          ls -lah
 
-
-      # 4. إنشاء مجلد build
-      - name: Create build folder
+      - name: Prepare build
         run: |
           mkdir -p build/assets
-          
-          # نسخ xray
           cp xray build/assets/
-          
-          # نسخ config
           cp config.json build/assets/
-          
-          ls -lah build/assets
 
-
-      # 5. إنشاء APK
-      - name: Create APK file
+      - name: Create APK
         run: |
           cd build
           zip -r VPN-VIP.apk assets
-          ls -lah
 
-
-      # 6. رفع APK
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
