@@ -11,34 +11,26 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install tools
-        run: |
-          sudo apt update
-          sudo apt install -y wget unzip zip
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
 
-      - name: Download Xray
-        run: |
-          wget -O xray.zip https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip
-          unzip -o xray.zip
-          chmod +x xray
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Prepare build
-        run: |
-          mkdir -p build/assets
-          cp xray build/assets/
-          cp config.json build/assets/
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
-      - name: Create APK
-        run: |
-          cd build
-          zip -r VPN-VIP.apk assets
+      - name: Build APK
+        run: ./gradlew assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: VPN-VIP-APK
-          path: build/VPN-VIP.apk
+          name: VPN-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
