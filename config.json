@@ -1,0 +1,133 @@
+{
+  "dns": {
+    "servers": [
+      "2606:4700:4700::1111",
+      "2606:4700:4700::1001"
+    ]
+  },
+  "inbounds": [
+    {
+      "listen": "0.0.0.0",
+      "port": 1080,
+      "protocol": "dokodemo-door",
+      "settings": {
+        "network": "tcp,udp",
+        "followRedirect": true
+      },
+      "tag": "tun-inbound"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 10808,
+      "protocol": "socks",
+      "settings": {
+        "auth": "noauth",
+        "udp": true
+      },
+      "tag": "socks-inbound"
+    }
+  ],
+  "log": {
+    "loglevel": "warning"
+  },
+  "outbounds": [
+    {
+      "mux": {
+        "enabled": false
+      },
+      "protocol": "vmess",
+      "proxySettings": {
+        "tag": "alrufaaey",
+        "transportLayer": true
+      },
+      "settings": {
+        "vnext": [
+          {
+            "address": "thumbayan.com",
+            "port": 443,
+            "users": [
+              {
+                "alterId": 0,
+                "id": "03fcc618-b93d-6796-6aed-8a38c975d581",
+                "level": 8,
+                "security": "auto"
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "ws",
+        "security": "tls",
+        "tlsSettings": {
+          "allowInsecure": true,
+          "serverName": "thumbayan.com"
+        },
+        "wsSettings": {
+          "headers": {
+            "Host": "thumbayan.com"
+          },
+          "path": "/linkvws"
+        }
+      },
+      "tag": "VMESS"
+    },
+    {
+      "domainStrategy": "AsIs",
+      "protocol": "http",
+      "settings": {
+        "servers": [
+          {
+            "address": "157.240.196.32",
+            "port": 8080
+          }
+        ],
+        "headers": {
+          "Host": "thumbayan.com:443",
+          "Proxy-Connection": "keep-alive",
+          "User-Agent": "FBAV/0.0.0",
+          "X-iorg-bsid": "@alrufaaey"
+        }
+      },
+      "tag": "alrufaaey"
+    },
+    {
+      "protocol": "freedom",
+      "tag": "direct"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "block"
+    }
+  ],
+  "policy": {
+    "levels": {
+      "8": {
+        "connIdle": 300,
+        "downlinkOnly": 1,
+        "handshake": 4,
+        "uplinkOnly": 1
+      }
+    }
+  },
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      {
+        "outboundTag": "direct",
+        "protocol": [
+          "dns"
+        ],
+        "type": "field"
+      },
+      {
+        "inboundTag": [
+          "tun-inbound",
+          "socks-inbound"
+        ],
+        "outboundTag": "VMESS",
+        "type": "field"
+      }
+    ]
+  }
+}
